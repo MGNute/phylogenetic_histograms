@@ -158,7 +158,7 @@ class SeppJsonDataManager(DataManager):
             b=len(self.multiplicities.keys())
             print ('%s keys before, %s keys after' % (a,b))
             # tot = reduce(lambda x, y: (y[0], x[1] + y[1]), self.multiplicities)
-            tot = sum(map(lambda x: x[1],self.multiplicities))
+            tot = sum(map(lambda x: x[1],self.multiplicities.items()))
         print ("\tnew total = %s" % min(tot,1000000000))
 
     def cap_multiplicities(self,cap = None):
