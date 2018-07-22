@@ -12,10 +12,30 @@ from utilities import *
 import phylohist
 import settings
 import threading
-from art_manager import ArtManger
+from art_manager import ArtManager
 
 
 USE_BUFFERED_DC = False
+
+def redraw(pbw, dataman):
+    '''
+    This function is run after zooming or rotating in such a way that the figure must be redrawn
+    :param pbw: PhylogenyBufferedWindow
+    :param dataman: DataManager
+    :return:
+    '''
+    pbw.init_cairo_context()
+    dataman.draw_circle_around_clade('phylum', 'Proteobacteria', pbw, True)
+    dataman.draw_circle_around_clade('phylum', 'Firmicutes', pbw, True)
+    dataman.draw_circle_around_clade('phylum', 'Bacteroidetes', pbw, True)
+    dataman.draw_circle_around_clade('phylum', 'Actinobacteria', pbw, True)
+
+    dataman.draw_tree(pbw)
+    dataman.make_colored_histogram(pbw)
+    redraw(pbw.am, dataman)
+
+    # keep this part here...
+    wx.CallAfter(pbw.UpdateDrawing)
 
 # class BufferedWindow(wx.Window):
 class BufferedWindow(wx.Panel):
@@ -57,7 +77,7 @@ class BufferedWindow(wx.Panel):
         pass
 
     def OnRightDclick(self, event):
-        print event.GetPosition()
+        print (event.GetPosition())
 
     def OnPaint(self, event):
         self.paint_count += 1
@@ -76,7 +96,7 @@ class BufferedWindow(wx.Panel):
     def OnSize(self,event):
         # The Buffer init is done here, to make sure the buffer is always
         # the same size as the Window
-        Size  = self.GetClientSizeTuple()
+        Size  = self.GetClientSize()
 
 
         # Make new offscreen bitmap: this bitmap will always have the
@@ -132,9 +152,9 @@ class CairoBufferedWindow(BufferedWindow):
 
 
     def __init__(self,parent,*args,**kwargs):
+        self.am = ArtManager()
         BufferedWindow.__init__(self,parent,*args,**kwargs)
         self.parent = parent
-        self.am = ArtManger()
         self.image_path = 'work\\temp_new.png'
         # self.Bind(wx.EVT_RIGHT_DCLICK, self.DrawCairoFigure)
 
@@ -211,6 +231,6 @@ class CairoBufferedWindow(BufferedWindow):
             w = self.am.surf.get_width()
             # self._Buffer = wx.BitmapFromBufferRGBA(w,h,self.surf.get_data())
             self._Buffer = wx.EmptyBitmapRGBA(w,h)
-            self._Buffer.CopyFromBuffer(self.surf.get_data(),format=wx.BitmapBufferFormat_ARGB32)
+            self._Buffer.CopyFromBuffer(self.am.surf.get_data(),format=wx.BitmapBufferFormat_ARGB32)
             dc.SelectObject(self._Buffer)
             # print 'done drawing'

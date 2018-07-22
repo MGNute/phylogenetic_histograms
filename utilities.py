@@ -166,7 +166,7 @@ def get_ideal_permutation(els):
     B = random.sample(Bi, len(Bi))
     out = []
     out.append(m1 - 1)
-    if len(B) <> len(A):
+    if len(B) != len(A):
         out.append(B.pop() - 1)
     for i in range(len(A)):
         out.append(A.pop() - 1)
@@ -219,7 +219,7 @@ def get_list_from_file(filepath):
     myf=open(filepath,'r')
     ol=[]
     for i in myf:
-        if i.strip()<>'':
+        if i.strip()!='':
             ol.append(i.strip())
 
     myf.close()
@@ -371,7 +371,7 @@ def read_from_fasta(file_path):
     first=True
     for l in fasta:
         if l[0]=='>':
-            if first<>True:
+            if first!=True:
                 output[name]=seq
             else:
                 first=False

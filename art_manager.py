@@ -9,9 +9,10 @@ Dependencies:
 '''
 
 import cairo
+import settings as s
 
 
-class ArtManger():
+class ArtManager():
     '''
     This is an intermediate class that wraps a small part of the cairo
     details, such as what kind of file type, etc... Most of the cairo
@@ -148,7 +149,7 @@ class ArtManger():
             elif type=='pdf':
                 self.image_path_ext = 'pdf'
                 self.cairo_surface_type = 'pdf'
-                self.surf =cairo.PDFSurface(myfilename + '.pdf', self.w, self.h)
+                self.surf =cairo.PDFSurface(self.image_path + '.pdf', self.w, self.h)
             else:
                 print("surface type not recognized. Valid types are: \n%s" % str(self.valid_surface_types))
                 self.surf = cairo.ImageSurface(cairo.FORMAT_ARGB32,self.w, self.h)
@@ -164,10 +165,15 @@ class ArtManger():
             self.ctx.set_source_rgba(1., 1., 1., 1.)
             self.ctx.rectangle(0, 0, self.w, self.h)
             self.ctx.fill()
-            print '\tw: %s, h: %s' % (self.w, self.h)
+            print ('\tw: %s, h: %s' % (self.w, self.h))
 
         if self.matrix is not None and newmatrix == True:
             self.ctx.set_matrix(self.matrix)
+
+    def write_image_to_png(self,filepath=None):
+        if filepath is not None:
+            self.set_image_path(filepath)
+        self.surf.write_to_png(self.image_path + '.png')
 
     def finish_cairo_content(self):
         '''

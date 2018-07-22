@@ -17,7 +17,7 @@ import copy
 from phylohist import *
 import settings as s
 import scipy.spatial
-
+from functools import reduce
 
 class DataManager():
     def __init__(self):
@@ -30,6 +30,8 @@ class SeppJsonDataManager(DataManager):
     mrca_list = {}
     multiplicities = None
     total_read_count = None
+    annotation_loaded = False
+    multiplicities_loaded = False
 
     def __init__(self, seppfile=None):
         DataManager.__init__(self)
@@ -42,6 +44,12 @@ class SeppJsonDataManager(DataManager):
         has to be a path to a SEPP JSON results file. There are a lot of places
         in this process where some sanity checks on the input data would be
         helpful, but right now there are very few.
+
+        TODO:
+            * Since the reference tree is contained in the SEPP file, right now
+                we are just using the one in the SEPP file. That means storing things
+                like special layouts and such are not an option. They should be though.
+
         :param seppfile:
         :return:
         '''
@@ -49,7 +57,9 @@ class SeppJsonDataManager(DataManager):
         self.myjson = json.load(myf)
         myf.close()
         self.tree = dendropy.Tree.get(data=self.myjson['tree'],schema='newick')
-        self.annotation = get_annotation_dict()
+        # self.annotation = get_annotation_dict()
+        self.annotation_loaded = False
+        self.multiplicities_loaded = False
 
         print ('\tAdding new properties')
         for i in self.tree.preorder_node_iter():
@@ -103,7 +113,9 @@ class SeppJsonDataManager(DataManager):
         self.multiplicities = dict(mults)
         self.multiplicities_orig = dict(mults)
         self.total_read_count = total
-        print ("\ttotal reads: %s" % self.total_read_count)
+        print ("\ttotal reads: %s, multiplicities: %s, multiplicities_orig: %s" %
+               (self.total_read_count, len(self.multiplicities), len(self.multiplicities_orig)))
+        self.multiplicities_loaded = True
 
     def scale_multiplicities_to_total(self,new_total=None):
         '''
@@ -114,16 +126,22 @@ class SeppJsonDataManager(DataManager):
         :param new_total:
         :return:
         '''
+        if self.multiplicities_loaded==False:
+            print("No read multiplicity file loaded.")
+            return
         s.reads_scale_method = 'Scale to Scalar'
         import random
         if new_total is None:
             new_total = s.reads_scalar
-        newmults2 = map(lambda x: (x[0],float(x[1])/self.total_read_count * new_total,random.random()), self.multiplicities_orig.iteritems())
-        newmults = map(lambda x: (x[0], int(x[1])+(1 if x[2]<(x[1]-float(int(x[1]))) else 0)),newmults2)
+        newmults2 = list(map(lambda x: (x[0],float(x[1])/self.total_read_count * new_total,random.random()), self.multiplicities_orig.items()))
+        newmults = list(map(lambda x: (x[0], int(x[1])+(1 if x[2]<(x[1]-float(int(x[1]))) else 0)),newmults2))
+        print("newmults2 length: %s\tnewmults length: %s" % (len(newmults2), len(newmults)))
+
         self.multiplicities = dict(newmults)
-        print '%s keys in self.multiplicities, %s in original' % (len(self.multiplicities.keys()), len(self.multiplicities_orig.keys()))
-        tot = reduce(lambda x, y: (y[0],x[1]+y[1]), newmults)
-        if tot[1] > new_total:
+        print ('%s keys in self.multiplicities, %s in original' % (len(self.multiplicities.keys()), len(self.multiplicities_orig.keys())))
+        # tot = reduce(lambda x, y: (y[0],x[1]+y[1]), newmults)
+        tot = sum(map(lambda x: x[1], newmults))
+        if tot > new_total:
             '''
             One issue that can arise is that by scaling the totals, you end up with 
             fractional counts that have to be rounded. If the counts are small enough
@@ -132,15 +150,16 @@ class SeppJsonDataManager(DataManager):
             '''
             import collections
             # randomly select to bring the total down
-            population = [val for val, cnt in self.multiplicities.iteritems() for i in range(cnt)]
+            population = [val for val, cnt in self.multiplicities.items() for i in range(cnt)]
 
             self.multiplicities = dict(collections.Counter(random.sample(population,new_total)))
             a=len(self.multiplicities.keys())
             self.multiplicities.update(dict(map(lambda x: (x,0),list(set(self.multiplicities_orig.keys()).difference(set(self.multiplicities.keys()))))))
             b=len(self.multiplicities.keys())
             print ('%s keys before, %s keys after' % (a,b))
-            tot = reduce(lambda x, y: (y[0], x[1] + y[1]), self.multiplicities)
-        print ("\tnew total = %s" % min(tot[1],1000000000))
+            # tot = reduce(lambda x, y: (y[0], x[1] + y[1]), self.multiplicities)
+            tot = sum(map(lambda x: x[1],self.multiplicities))
+        print ("\tnew total = %s" % min(tot,1000000000))
 
     def cap_multiplicities(self,cap = None):
         '''
@@ -150,14 +169,30 @@ class SeppJsonDataManager(DataManager):
         :param cap:
         :return:
         '''
+        if self.multiplicities_loaded==False:
+            print("No read multiplicity file loaded.")
+            return
         s.reads_scale_method = 'Cap at Cap'
         if cap is None:
             cap = s.reads_cap
-        newmults = map(lambda x: (x[0], x[1] if x[1] <= cap else cap), self.multiplicities_orig.iteritems())
+        newmults = map(lambda x: (x[0], x[1] if x[1] <= cap else cap), self.multiplicities_orig.items())
         self.multiplicities = dict(newmults)
         tot = reduce(lambda x, y: (y[0],x[1]+y[1]), newmults)
         print ("\tnew total = %s" % tot[1])
 
+    def load_reference_tree_annotation(self,filepath=None):
+        '''
+        Loads the annotation file for the reference tree.
+        :param filepath:
+        :return:
+        '''
+        if filepath is None:
+            print("No annotation file has been specified, so the previous annotation will"
+                  "be enabled for further use. If there has not been one loaded, you will"
+                  "likely encounter an error.")
+        else:
+            get_annotation_dict(filepath)
+        self.annotation_loaded=True
 
     def get_mrca(self, rank, name):
         '''
@@ -167,6 +202,10 @@ class SeppJsonDataManager(DataManager):
         :param name:
         :return:
         '''
+        if self.annotation_loaded==False:
+            print("Function get_mrca requires an annotation for the reference tree but one has"
+                  "not been loaded.")
+            return
         if not isinstance(name, list):
             name = [name,]
         mytaxalabels = []
@@ -179,7 +218,7 @@ class SeppJsonDataManager(DataManager):
         # mytaxalabels = [i.taxon.label for i in self.current_tree.leaf_node_iter() if
         #                 self.annotation[i.taxon.label][rank] == name]
         my_mrca = self.current_tree.mrca(taxon_labels=mytaxalabels)
-        if my_mrca.root_clade_id <> 0:
+        if my_mrca.root_clade_id != 0:
             self.mrca_list[rank + "|" + "".join(name)]=my_mrca
             return my_mrca
         else:
@@ -271,23 +310,23 @@ class SeppJsonDataManager(DataManager):
         '''
         self.append_placements_general()
 
-    def append_placements_annotated(self):
-        '''
-        I'm not sure this has been fully implemented, but the idea here is to
-        control some aspects of the drawing using an annotation file, for example if
-        a set of reads should be omitted or something like that.
-        :return:
-        '''
-        ann = get_sepp_annotation()
-        for i in self.myjson['placements']:
-            br = i['p'][0][0]
-            nd = self.comment_edge_lookup[str(br)]
-            for j in i['nm']:
-
-                if ann[j[0]]=='1':
-                    nd.distal_placements.append(i['p'][0][3])
-                    nd.pendant_lengths.append(i['p'][0][4])
-        return ann
+    # def append_placements_annotated(self):
+    #     '''
+    #     I'm not sure this has been fully implemented, but the idea here is to
+    #     control some aspects of the drawing using an annotation file, for example if
+    #     a set of reads should be omitted or something like that.
+    #     :return:
+    #     '''
+    #     ann = get_sepp_annotation()
+    #     for i in self.myjson['placements']:
+    #         br = i['p'][0][0]
+    #         nd = self.comment_edge_lookup[str(br)]
+    #         for j in i['nm']:
+    #
+    #             if ann[j[0]]=='1':
+    #                 nd.distal_placements.append(i['p'][0][3])
+    #                 nd.pendant_lengths.append(i['p'][0][4])
+    #     return ann
 
     def append_placements_general(self):
         '''
@@ -441,12 +480,17 @@ class SeppJsonDataManager(DataManager):
     def draw_circle_around_clade(self,rank,name,pbw,draw_label=False):
         '''
         Occasionally it's helpful for annotation to circle some group. This does that.
+        It is pretty slow though.
         :param rank:
         :param name:
         :param pbw:
         :param draw_label:
         :return:
         '''
+        if self.annotation_loaded==False:
+            print("Function draw_circle_around_clade requires an annotation for the reference tree but one has"
+                  "not been loaded.")
+            return
         if self.new_perspective:
             self.load_perspective(pbw)
             self.new_perspective=False
@@ -559,6 +603,10 @@ class SeppJsonDataManager(DataManager):
         :param included:
         :return:
         '''
+        if self.annotation_loaded==False:
+            print("Function get_subtree_as_current_tree requires an annotation for the "
+                  "reference tree but one has not been loaded.")
+            return
         if not isinstance(included,list):
             included = [included]
         fn = lambda nd: self.annotation[nd.taxon.label][rank] in included
@@ -569,7 +617,7 @@ class SeppJsonDataManager(DataManager):
 
         add_radial_phylogram_to_tree(self.current_tree)
         self.max_dims = get_max_dims(self.current_tree)
-        print 'new max_dims are (%s, %s, %s, %s)' % self.max_dims
+        print ('new max_dims are (%s, %s, %s, %s)' % self.max_dims)
         self.midpt = (self.max_dims[0] + 0.5*(self.max_dims[1]-self.max_dims[0]),self.max_dims[2] + 0.5*(self.max_dims[3]-self.max_dims[2]))
         self.set_coordinate_transform(topleft=True)
         # self.post_update_current_tree()
@@ -732,7 +780,7 @@ class SeppJsonDataManager(DataManager):
         pbw.ctx.set_source_rgba(*s.tree_color_tup)
         fn = lambda x: x.orig.drawn
         pr = self.current_tree.preorder_node_iter(fn)
-        rt = pr.next()
+        rt = next(pr)
         for i in pr:
             i.orig.location=i.location
             # i.orig.location[1]=i.location[1]

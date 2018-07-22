@@ -2,7 +2,8 @@
 contains user-settings that may not need to be changed regularly.
 '''
 # initial panel settings
-controls_xy = (2300,300)  #cincy monitor
+# controls_xy = (2300,300)  #cincy monitor
+controls_xy = (100,100)  #cincy monitor
 
 # cairo settings
 img_width = 1500

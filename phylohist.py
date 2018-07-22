@@ -32,18 +32,7 @@ import settings as s
 import cairo
 import utilities
 import colorsys
-# path = 'D:\\Users\\miken.DESKTOP-4FP24QU\\Dropbox\\Grad School\\Phylogenetics\\work\\dark-matter\\sepp_kernelplot'
-dmpath = 'C:\\Users\\miken\\Dropbox\\GradSchool\\Phylogenetics\\work\\dark-matter'
-# path = 'D:\\Users\\miken.DESKTOP-4FP24QU\\Dropbox\\Grad School\\Phylogenetics\\work\\dark-matter\\sepp_kernelplot\\sepp_results'
-# path = 'D:\\Users\\miken.DESKTOP-4FP24QU\\Dropbox\\Grad School\\Phylogenetics\\work\\dark-matter\\sepp_kernelplot\\sepp_results_w_archaea'
-
-# path = 'C:\\Users\\miken\\GradSchoolStuff\\Research\\Phylogenetics\\results\\2017-09-autism\\full_sepp_results'
-# refpkg_path = 'D:\\Users\\miken.DESKTOP-4FP24QU\\GradSchoolStuff\\Research\\Phylogenetics\\Metagenomics\\tipp\\refpkg\\16S_bacteria.refpkg'
-refpkg_path = 'C:\\Users\\miken\\GradSchoolStuff\\Research\\Phylogenetics\\Metagenomics\\tipp\\refpkg\\rdp_bact_2016.refpkg'
-
-# annotation_file = os.path.join(refpkg_path, 'annotation_seqname.txt')
-annotation_file = os.path.join(refpkg_path, 'annotation.txt')
-# annotation_file = os.path.join(refpkg_path, 'annotation_with_archaea.txt')
+from art_manager import ArtManager
 
 roygbiv = [(255.,0.,0.),
             # (255.,153.,0.),
@@ -154,7 +143,7 @@ def draw_legend_at_loc(ctx,x0,y0, w=200, h=200, lw=1, fontsize=14, verbose=False
     num_ticks = 5
     tick_gap = int(num_placements_to_full/num_ticks)
     if verbose:
-        print 'numtofull %s, tick_gap: %s' % (num_placements_to_full, tick_gap)
+        print ('numtofull %s, tick_gap: %s' % (num_placements_to_full, tick_gap))
     y_start = y0+h
     max_te=0
     for i in range(num_ticks+1):
@@ -204,7 +193,8 @@ def add_radial_phylogram_to_tree(tr):
 
     # start with the root node
     ct = 0
-    r=pr.next()
+    # r=pr.next()
+    r=next(pr)
     # label every node
     if not hasattr(tr.leaf_nodes()[0], 'root_clade_id'):
         ct=1
@@ -296,13 +286,15 @@ def get_max_dims(tr, margin_pct=0.05):
     ymarg = abs(ymax-ymin)*margin_pct
     return (xmin-xmarg, xmax+xmarg, ymin-ymarg, ymax+ymarg)
 
-# if __name__=='__main__':
-#     tr = dendropy.Tree.get(path=os.path.join(refpkg_path,'sate.taxonomy'),schema='newick')
-#     annot = get_annotation_dict()
-#     print len(annot.keys())
-#     print annot.keys()[0:10]
-#     print len(tr.leaf_nodes())
-#
-#     fn_get_firms = lambda nd: annot[nd.taxon.label]['phylum']=='firmicutes'
-#     trsub = tr.extract_tree('orig',fn_get_firms,suppress_unifurcations=False)
-#     print len(trsub.leaf_nodes())
+def draw_graphic_gui(artman, dataman):
+    '''
+    When using the GUI, a lot of actions require that the image be re-drawn,
+    like rotating it or adding certain labels or such. This is the function
+    that encapsulates the process of drawing the graphic. It can be
+    changed by the user which is why it's in this module.
+    :param artman:
+    :param dataman:
+    :return:
+    '''
+    dataman.draw_tree(artman)
+    dataman.make_colored_histogram(artman)
