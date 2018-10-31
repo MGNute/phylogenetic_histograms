@@ -149,7 +149,14 @@ class ArtManager():
             elif type=='pdf':
                 self.image_path_ext = 'pdf'
                 self.cairo_surface_type = 'pdf'
-                self.surf =cairo.PDFSurface(self.image_path + '.pdf', self.w, self.h)
+                self.surf = cairo.PDFSurface(self.image_path + '.pdf', self.w, self.h)
+                # try:
+                #     self.surf =cairo.PDFSurface(self.image_path + '.pdf', self.w, self.h)
+                # except IOError:
+                #     print (self.image_path)
+                #     import sys
+                #     sys.exit(0)
+
             else:
                 print("surface type not recognized. Valid types are: \n%s" % str(self.valid_surface_types))
                 self.surf = cairo.ImageSurface(cairo.FORMAT_ARGB32,self.w, self.h)
@@ -182,8 +189,10 @@ class ArtManager():
         '''
         if self.image_path_ext=='png':
             self.surf.write_to_png(self.image_path + '.png')
+            self.init_cairo_context()
         self.surf.finish()
-        self.init_cairo_context()
+
+
 
     def set_cairo_matrix(self, t11, t12, t13, t21, t22, t23):
         '''

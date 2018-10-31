@@ -92,7 +92,7 @@ class SeppJsonDataManager(DataManager):
         # self.update_current_tree_edges()
         # self.make_colored_histogram()
 
-    def load_read_multiplicities(self,filename):
+    def load_read_multiplicities(self,filename=None):
         '''
         For computation sake, it is helpful to remove duplicate reads from the
         read file before giving it to SEPP. Then when rendering we import the
@@ -101,15 +101,24 @@ class SeppJsonDataManager(DataManager):
         :param filename:
         :return:
         '''
+
+
+
         mults = []
-        mf = open(filename,'r')
-        total = 0
-        for i in mf:
-            rd = i.strip().split('\t')
-            rct = int(rd[1])
-            total += rct
-            mults.append((rd[0],rct))
-        mf.close()
+        if filename is None:
+            for pl in self.myjson['placements']:
+                for nm in pl['n']:
+                    mults.append((nm,1))
+            total = len(mults)
+        else:
+            mf = open(filename,'r')
+            total = 0
+            for i in mf:
+                rd = i.strip().split('\t')
+                rct = int(rd[1])
+                total += rct
+                mults.append((rd[0],rct))
+            mf.close()
         self.multiplicities = dict(mults)
         self.multiplicities_orig = dict(mults)
         self.total_read_count = total
@@ -336,10 +345,15 @@ class SeppJsonDataManager(DataManager):
         for i in self.myjson['placements']:
             br = i['p'][0][0]
             nd = self.comment_edge_lookup[str(br)]
-            for j in i['nm']:
+            if 'nm' in i.keys():
+                name_name = 'nm'
+            elif 'n' in i.keys():
+                name_name = 'n'
+            for j in i[name_name]:
                 nd.distal_placements.append(i['p'][0][3])
                 nd.pendant_lengths.append(i['p'][0][4])
-                nd.names.append(j[0])
+                # nd.names.append(j[0])
+                nd.names.append(j)
 
 
 

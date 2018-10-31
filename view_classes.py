@@ -25,14 +25,14 @@ def redraw(pbw, dataman):
     :return:
     '''
     pbw.init_cairo_context()
-    dataman.draw_circle_around_clade('phylum', 'Proteobacteria', pbw, True)
-    dataman.draw_circle_around_clade('phylum', 'Firmicutes', pbw, True)
-    dataman.draw_circle_around_clade('phylum', 'Bacteroidetes', pbw, True)
-    dataman.draw_circle_around_clade('phylum', 'Actinobacteria', pbw, True)
+    # dataman.draw_circle_around_clade('phylum', 'Proteobacteria', pbw, True)
+    # dataman.draw_circle_around_clade('phylum', 'Firmicutes', pbw, True)
+    # dataman.draw_circle_around_clade('phylum', 'Bacteroidetes', pbw, True)
+    # dataman.draw_circle_around_clade('phylum', 'Actinobacteria', pbw, True)
 
     dataman.draw_tree(pbw)
     dataman.make_colored_histogram(pbw)
-    redraw(pbw.am, dataman)
+    # redraw(pbw.am, dataman)
 
     # keep this part here...
     wx.CallAfter(pbw.UpdateDrawing)

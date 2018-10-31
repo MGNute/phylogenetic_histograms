@@ -14,14 +14,14 @@ tree_color_tup = (tree_color, tree_color, tree_color, tree_alpha)
 tree_line_pct_of_width = .0005
 
 # histogram settings
-alpha_kernel = .01
+alpha_kernel = .10
 length_for_red = 0.
-length_for_blue = .20
+length_for_blue = .60
 circle_width_factor = .006
 circle_width_pixels = 5
 raw_circle_width = .01
 
-reads_scalar = 25000
+reads_scalar = 1000
 reads_cap = 500
 reads_scale_method = None
 

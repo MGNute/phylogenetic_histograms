@@ -25,7 +25,29 @@ def run_example_1():
     # this is an example that is similar to the interface in run_scripts
     ibd_run_script_2_full_tree(am, dc, sepp_file, mults_file, img_path,'png')
 
+def run_example_STAMPS():
+    sepp_file = 'C:\\Users\\miken\\GradSchoolStuff\\Research\\Phylogenetics\\code\\stamps-tutorial\\tipp\\out\\TIPP-RDP-CLOSTRIDIA-95-SRR1219742_placement.json'
+    img_path = 'C:\\Users\\miken\\GradSchoolStuff\\Research\\Phylogenetics\\code\\stamps-tutorial\\images\\TIPP-RDP-CLOSTRIDIA-95-SRR1219742_phylo_heat_map.pdf'
+    dc.load_sepp_file(sepp_file)
+    dc.load_read_multiplicities()
+    dc.load_reference_tree_annotation(annot_file)
+    # dc.scale_multiplicities_to_total()
 
+    print('\tdrawing tree')
+    am.set_image_path(img_path)
+    am.init_cairo_context(type='pdf')
+
+    fo, fi = os.path.split(img_path)
+
+    dc.draw_tree(am)
+    dc.make_colored_histogram(am)
+    am.draw_label_on_screen(fi, (0., 0.), bold=True)
+    # am.draw_label_on_screen(fi, (0., 30.))
+
+    draw_legend_at_loc(am.ctx, 1000, 200)
+
+    am.finish_cairo_content()
+    print('done drawing tree')
 
 
 def ibd_run_script_2_full_tree(artman, dataman, seppfile, multsfile, img_path, type):
@@ -59,4 +81,5 @@ def ibd_run_script_2_full_tree(artman, dataman, seppfile, multsfile, img_path, t
     print ('done drawing tree')
 
 if __name__=='__main__':
-    run_example_1()
+    # run_example_1()
+    run_example_STAMPS()

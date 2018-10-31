@@ -34,12 +34,12 @@ import utilities
 import colorsys
 from art_manager import ArtManager
 
-roygbiv = [(255.,0.,0.),
+roygbiv = [(255.,0.,0.),    #red
             # (255.,153.,0.),
-            (255.,255.,0.),
-            (0.,255.,0.),
-            (0.,255.,255.),
-            (0.,0.,255.)]
+            # (255.,255.,0.), #yellow
+            (0.,255.,0.),   #green
+            # (0.,255.,255.), #teal
+            (0.,0.,255.)]   #blue
             # (255.,0.,255.)]
 steps = len(roygbiv)-1
 steps_f = float(steps)
@@ -92,6 +92,7 @@ def get_color_of_pendant_branch(length):
     col1 = roygbiv[first]
     col2 = roygbiv[first+1]
 
+    # interpolating on the RGB scale:
     return ((pct_inter*col2[0]+(1-pct_inter)*col1[0])/255.,
             (pct_inter * col2[1] + (1 - pct_inter) * col1[1])/255.,
             (pct_inter * col2[2] + (1 - pct_inter) * col1[2])/255.,
