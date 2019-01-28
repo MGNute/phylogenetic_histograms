@@ -11,23 +11,226 @@ Dependencies:
     cairo
 '''
 
-import json, dendropy
+import json, dendropy, sys
 import numpy as np
 import copy
+# from . phylohist import *
+# from . import settings as s
 from phylohist import *
 import settings as s
+
 import scipy.spatial
 from functools import reduce
 
 class DataManager():
-    def __init__(self):
-
-        pass
-
-class SeppJsonDataManager(DataManager):
     new_perspective = False
     clade_hull_locations = {}
     mrca_list = {}
+    verbose = True
+    max_dims = [0., 0., 0., 0.]
+    midpt = [0., 0.]
+
+    def __init__(self,  verbose = True):
+        self.target_aspect = s.img_aspect
+        if verbose is not True:
+            self.verbose = False
+        pass
+
+    def set_coordinate_transform_3pts(self,x1, x2, x3, x1new, x2new, x3new):
+        '''
+        This method resets the transformation between the phylogeny space and the
+        viewing window. Specifically though, this method does it by taking three
+        points in the phylogeny space and three corresponding poitns in the viewing
+        spacce, and sets the transform to match them up.
+        :param x1: tuple or 1 x 2 array (x,y) in the phylogeny space
+        :param x2: tuple or 1 x 2 array (x,y) in the phylogeny space
+        :param x3: tuple or 1 x 2 array (x,y) in the phylogeny space
+        :param x1new: tuple or 1 x 2 array (x,y) in the viewing space
+        :param x2new: tuple or 1 x 2 array (x,y) in the viewing space
+        :param x3new: tuple or 1 x 2 array (x,y) in the viewing space
+        :return: None
+        '''
+        a=np.transpose(np.array([[x1[0], x1[1], 1],
+                                 [x2[0], x2[1], 1],
+                                 [x3[0], x3[1], 1]],dtype=np.float64))
+        b = np.transpose(np.array([[x1new[0], x1new[1], 1],
+                                   [x2new[0], x2new[1], 1],
+                                   [x3new[0], x3new[1], 1]], dtype=np.float64))
+        newm = np.dot(b,np.linalg.inv(a))
+        self.t11 = newm[0, 0]
+        self.t12 = newm[0, 1]
+        self.t13 = newm[0, 2]
+        self.t21 = newm[1, 0]
+        self.t22 = newm[1, 1]
+        self.t23 = newm[1, 2]
+        # mark the transformation as having been changed so other methods can
+        # adjust accordingly.
+        self.new_perspective = True
+
+    def get_main_tree(self):
+        '''
+        this is an abstract method that can be overridden elsewhere. The idea
+        is that different incarnations of this will want to draw different
+        trees, but a general "draw_tree" method can call this to find the
+        appropriate one.
+        :return:
+        '''
+        raise NotImplementedError
+
+    def draw_tree(self, artman, tr = None, sets = None):
+        '''
+        This is a workhorse method that draws the tree on the context
+        from the artman.
+        :param artman: ArtManager
+        :param tr: a dendropy tree with all the properties of a radial
+            phylogram added to every node.
+        :param sets: a dictionary object with settings related to
+            drawing and whatnot.
+        :return:
+        '''
+        if tr is None:
+            tr = self.get_main_tree()
+        if sets is None:
+            sets = {0: 'empty'}
+        else:
+            assert isinstance(sets,dict)
+
+        # this function uses these settings:
+        tr_ln_pct = sets.get('tree_line_pct_of_width', 0.0002)
+        tr_alph = sets.get('tree_alpha')
+        tr_col = sets.get('tree_color')
+        tr_col_tup = (tr_col, tr_col, tr_col, tr_alph)
+
+        self.load_perspective(artman)
+        artman.ctx.set_line_width(abs(self.max_dims[0] - self.max_dims[1]) * tr_ln_pct)
+
+        artman.ctx.set_source_rgba(*tr_col_tup)
+        fn = lambda x: x.drawn
+        pr = tr.preorder_node_iter(fn)
+        rt = next(pr)
+        for i in pr:
+            artman.ctx.move_to(*i.parent_node.location)
+            artman.ctx.line_to(*i.location)
+            # if i.collapsed:
+            #     artman.ctx.stroke()
+            #     p1x = i.location[0] + math.cos(i.left_wedge_border) * .5
+            #     p1y = i.location[1] + math.sin(i.left_wedge_border) * .5
+            #     p2x = i.location[0] + math.cos(i.right_wedge_border) * .5
+            #     p2y = i.location[1] + math.sin(i.right_wedge_border) * .5
+            #     artman.ctx.move_to(*i.location)
+            #     artman.ctx.line_to(p1x, p1y)
+            #     artman.ctx.line_to(p2x, p2y)
+            #     artman.ctx.line_to(*i.location)
+            #     artman.ctx.set_source_rgb(*cc_color)
+            #     artman.ctx.fill()
+            #     artman.ctx.set_source_rgba(*tr_col_tup)
+
+        artman.ctx.stroke()
+
+    def change_size_in_settings(self,w,h):
+        '''
+
+        :param w:
+        :param h:
+        :return:
+        '''
+        s.img_height = h
+        s.img_width = w
+
+    def set_coordinate_transform(self, topleft=False, verbose=True):
+        '''
+        There are several ways to set the transformation between the phylogeny space
+        and the viewer space. In this particular case it take the height and width
+        of the viewer space, squeezes the rendering points in phylogeny space into
+        that window and centers the thing (unless topleft=True, then it puts it in the
+        top left of the viewing window). The bounds in phylogeny space are kep in the
+        self.max_dims variable.
+
+        :param topleft: if topleft is True, just sets the top left corner to be whatever the max_dims dictates
+        :return:
+        '''
+        max_dims = self.max_dims
+        aspect = abs((max_dims[1] - max_dims[0]) / (max_dims[3] - max_dims[2]))
+        w = s.img_width
+        h = s.img_height
+
+        if topleft==False:
+            # print aspect
+            if aspect > (float(w) / float(h)):
+                # print 'cd is horiz'
+                # constraining dimension is horizontal
+                vgap = (h - w / aspect) / 2
+                hgap = 0
+            else:
+                # print 'cd is vert'
+                # constraining dimension is horizontal
+                vgap = 0
+                hgap = (w - h * aspect) / 2
+
+            if verbose:
+                print('x1: %s      x2: %s      y1:%s')
+                print('asp=%0.3f   w: %s       h: %s')
+
+            x1 = max_dims[0]; x2 = max_dims[1]; y1 = max_dims[3]
+            a= np.array([[x1, 1 ,0],[x2,1,0], [-y1,0,1]], dtype=np.float64)
+            b=np.array([hgap, w - hgap, vgap],dtype=np.float64)
+            abc = np.dot(np.linalg.inv(a),b)
+            # print a
+            # print b
+
+            self.t11 = np.asscalar(abc[0])
+            self.t13 = np.asscalar(abc[1])
+            self.t23 = np.asscalar(abc[2])
+            self.t12 = 0; self.t21 = 0; self.t22 = -self.t11
+            self.new_perspective = True
+        else:
+            if aspect > float(w)/ float(h):
+                hfact = float(w)/aspect
+                wfact = float(w)
+            else:
+                hfact = float(h)
+                wfact = float(h)*aspect
+            x1new = (0,0); x1 = (self.max_dims[0],self.max_dims[3])
+            x2new = (wfact,0); x2 = (self.max_dims[1],self.max_dims[3])
+            x3new = [0,hfact]; x3 =(self.max_dims[0],self.max_dims[2])
+            self.set_coordinate_transform_3pts(x1, x2, x3, x1new, x2new, x3new)
+
+    def setup_numpy_arrays(self):
+        '''
+        This method creates a set of numpy arrays that store the attributes of the
+        tree related to rendering. A lot of the computation related to rendering can
+        get heavy, so it's best to do this in Numpy or C
+        :return:
+        '''
+        self.np_topology = np.ones((self.node_ct, 3),dtype = np.int32)
+        self.np_deflect_angles = np.zeros(self.node_ct, dtype = np.float64)
+        self.np_edge_segment_angles = np.zeros(self.node_ct, dtype=np.float64)
+        self.np_pts = np.zeros((self.node_ct,2), dtype=np.float64)
+        self.right_wedge_borders = np.zeros(self.node_ct, dtype=np.float64)
+        self.left_wedge_borders = np.zeros(self.node_ct, dtype=np.float64)
+        self.wedge_angle = np.zeros(self.node_ct, dtype=np.float64)
+        self.edge_lengths = np.zeros(self.node_ct, dtype=np.float64)
+
+        # todo: fill the rest of this part in
+
+
+    def load_perspective(self,pbw):
+        '''
+        When we change the coordinate tranform, this is a helper to make sure
+        the Cairo class has been adjusted properly.
+        :param pbw: an ArtManager object
+        :return:
+        '''
+        if self.new_perspective == True:
+            pbw.set_cairo_matrix(self.t11, self.t12, self.t13, self.t21, self.t22, self.t23)
+            self.new_perspective=False
+
+    def get_main_max_dims(self, margin_pct=0.05):
+        tr = self.get_main_tree()
+        self.max_dims = get_max_dims(tr, margin_pct)
+
+
+class SeppJsonDataManager(DataManager):
     multiplicities = None
     total_read_count = None
     annotation_loaded = False
@@ -107,8 +310,10 @@ class SeppJsonDataManager(DataManager):
         mults = []
         if filename is None:
             for pl in self.myjson['placements']:
-                for nm in pl['n']:
-                    mults.append((nm,1))
+                for nm in pl['nm']:
+                    mults.append((nm[0],1))
+                # for n in pl['nm']:
+                #     mults.append((nm,1))
             total = len(mults)
         else:
             mf = open(filename,'r')
@@ -119,14 +324,18 @@ class SeppJsonDataManager(DataManager):
                 total += rct
                 mults.append((rd[0],rct))
             mf.close()
+        # try:
         self.multiplicities = dict(mults)
+        # except:
+        #     print(mults[0:10])
+        #     sys.exit(0)
         self.multiplicities_orig = dict(mults)
         self.total_read_count = total
         print ("\ttotal reads: %s, multiplicities: %s, multiplicities_orig: %s" %
                (self.total_read_count, len(self.multiplicities), len(self.multiplicities_orig)))
         self.multiplicities_loaded = True
 
-    def scale_multiplicities_to_total(self,new_total=None):
+    def scale_multiplicities_to_total(  self,new_total=None):
         '''
         Since abundance is represented by saturation, as long as we are using
         alpha-blending for saturation, it is important to scale the multiplicites
@@ -271,7 +480,7 @@ class SeppJsonDataManager(DataManager):
         This sets the boundaries so that the image will be contained in the viewing window.
         This is particularly helpful if you want to draw multiple graphs on the same image,
         and you want to set a specific window for the sub-image.
-        :param L:
+        :param L: Note: all boundaries are in the viewer space coords
         :param R:
         :param T:
         :param B:
@@ -352,8 +561,8 @@ class SeppJsonDataManager(DataManager):
             for j in i[name_name]:
                 nd.distal_placements.append(i['p'][0][3])
                 nd.pendant_lengths.append(i['p'][0][4])
-                # nd.names.append(j[0])
-                nd.names.append(j)
+                nd.names.append(j[0])
+                # nd.names.append(j)
 
 
 
@@ -405,6 +614,7 @@ class SeppJsonDataManager(DataManager):
 
                     nm = i.names[k]
                     m = 1
+
                     if self.multiplicities is not None:
                         m = self.multiplicities[nm]
                     for ct in range(m):
@@ -462,23 +672,6 @@ class SeppJsonDataManager(DataManager):
         self.append_placements()
 
 
-    def setup_numpy_arrays(self):
-        '''
-        This method creates a set of numpy arrays that store the attributes of the
-        tree related to rendering. A lot of the computation related to rendering can
-        get heavy, so it's best to do this in Numpy or C
-        :return:
-        '''
-        self.np_topology = np.ones((self.node_ct, 3),dtype = np.int32)
-        self.np_deflect_angles = np.zeros(self.node_ct, dtype = np.float64)
-        self.np_edge_segment_angles = np.zeros(self.node_ct, dtype=np.float64)
-        self.np_pts = np.zeros((self.node_ct,2), dtype=np.float64)
-        self.right_wedge_borders = np.zeros(self.node_ct, dtype=np.float64)
-        self.left_wedge_borders = np.zeros(self.node_ct, dtype=np.float64)
-        self.wedge_angle = np.zeros(self.node_ct, dtype=np.float64)
-        self.edge_lengths = np.zeros(self.node_ct, dtype=np.float64)
-
-        # todo: fill the rest of this part in
 
     def get_rotation_for_optimal_aspect(self):
         '''
@@ -636,101 +829,6 @@ class SeppJsonDataManager(DataManager):
         self.set_coordinate_transform(topleft=True)
         # self.post_update_current_tree()
 
-    def set_coordinate_transform_3pts(self,x1, x2, x3, x1new, x2new, x3new):
-        '''
-        This method resets the transformation between the phylogeny space and the
-        viewing window. Specifically though, this method does it by taking three
-        points in the phylogeny space and three corresponding poitns in the viewing
-        spacce, and sets the transform to match them up.
-        :param x1: tuple or 1 x 2 array (x,y) in the phylogeny space
-        :param x2: tuple or 1 x 2 array (x,y) in the phylogeny space
-        :param x3: tuple or 1 x 2 array (x,y) in the phylogeny space
-        :param x1new: tuple or 1 x 2 array (x,y) in the viewing space
-        :param x2new: tuple or 1 x 2 array (x,y) in the viewing space
-        :param x3new: tuple or 1 x 2 array (x,y) in the viewing space
-        :return: None
-        '''
-        a=np.transpose(np.array([[x1[0], x1[1], 1],
-                                 [x2[0], x2[1], 1],
-                                 [x3[0], x3[1], 1]],dtype=np.float64))
-        b = np.transpose(np.array([[x1new[0], x1new[1], 1],
-                                   [x2new[0], x2new[1], 1],
-                                   [x3new[0], x3new[1], 1]], dtype=np.float64))
-        newm = np.dot(b,np.linalg.inv(a))
-        self.t11 = newm[0, 0];
-        self.t12 = newm[0, 1];
-        self.t13 = newm[0, 2];
-        self.t21 = newm[1, 0];
-        self.t22 = newm[1, 1];
-        self.t23 = newm[1, 2];
-        # mark the transformation as having been changed so other methods can
-        # adjust accordingly.
-        self.new_perspective = True
-
-    def set_coordinate_transform(self, topleft=False):
-        '''
-        There are several ways to set the transformation between the phylogeny space
-        and the viewer space. In this particular case it take the height and width
-        of the viewer space, squeezes the rendering points in phylogeny space into
-        that window and centers the thing (unless topleft=True, then it puts it in the
-        top left of the viewing window). The bounds in phylogeny space are kep in the
-        self.max_dims variable.
-
-        :param topleft: if topleft is True, just sets the top left corner to be whatever the max_dims dictates
-        :return:
-        '''
-        max_dims = self.max_dims
-        aspect = abs((max_dims[1] - max_dims[0]) / (max_dims[3] - max_dims[2]))
-        w = s.img_width
-        h = s.img_height
-
-        if topleft==False:
-            # print aspect
-            if aspect > (float(w) / float(h)):
-                # print 'cd is horiz'
-                # constraining dimension is horizontal
-                vgap = (h - w / aspect) / 2
-                hgap = 0
-            else:
-                # print 'cd is vert'
-                # constraining dimension is horizontal
-                vgap = 0
-                hgap = (w - h * aspect) / 2
-
-            x1 = max_dims[0]; x2 = max_dims[1]; y1 = max_dims[3];
-            a= np.array([[x1, 1 ,0],[x2,1,0], [-y1,0,1]], dtype=np.float64)
-            b=np.array([hgap, w - hgap, vgap],dtype=np.float64)
-            abc = np.dot(np.linalg.inv(a),b)
-            # print a
-            # print b
-
-            self.t11 = np.asscalar(abc[0])
-            self.t13 = np.asscalar(abc[1])
-            self.t23 = np.asscalar(abc[2])
-            self.t12 = 0; self.t21 = 0; self.t22 = -self.t11;
-            self.new_perspective = True
-        else:
-            if aspect > float(w)/ float(h):
-                hfact = float(w)/aspect
-                wfact = float(w)
-            else:
-                hfact = float(h)
-                wfact = float(h)*aspect
-            x1new = (0,0); x1 = (self.max_dims[0],self.max_dims[3])
-            x2new = (wfact,0); x2 = (self.max_dims[1],self.max_dims[3])
-            x3new = [0,hfact]; x3 =(self.max_dims[0],self.max_dims[2])
-            self.set_coordinate_transform_3pts(x1, x2, x3, x1new, x2new, x3new)
-
-    def load_perspective(self,pbw):
-        '''
-        When we change the coordinate tranform, this is a helper to make sure
-        the Cairo class has been adjusted properly.
-        :param pbw: an ArtManager object
-        :return:
-        '''
-        if self.new_perspective == True:
-            pbw.set_cairo_matrix(self.t11, self.t12, self.t13, self.t21, self.t22, self.t23)
-            self.new_perspective=False
 
     def rotate_perspective(self,pbw):
         '''
@@ -783,8 +881,8 @@ class SeppJsonDataManager(DataManager):
 
     def draw_tree(self, pbw):
         '''
-        This is the workhorse method that renders the background tree for drawing
-        the historgram
+        There is a lot of cold duplication with the method in the superclass right now but
+        that's ok.
         :param pbw: an ArtManger object
         :return:
         '''

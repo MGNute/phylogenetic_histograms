@@ -28,19 +28,23 @@ Attributes:
 import os, math
 import dendropy, cairo
 import numpy as np
-import settings as s
 import cairo
-import utilities
+# from . import settings as s
+import settings as s
+# import utilities
 import colorsys
-from art_manager import ArtManager
+#from art_manager import ArtManager
 
-roygbiv = [(255.,0.,0.),    #red
+roygbiv = [
+            # (255.,0.,0.),    #red
             # (255.,153.,0.),
             # (255.,255.,0.), #yellow
-            (0.,255.,0.),   #green
+            # (0.,255.,0.),   #green
             # (0.,255.,255.), #teal
-            (0.,0.,255.)]   #blue
-            # (255.,0.,255.)]
+            (0.,0.,255.),     #blue
+            (255.,0.,255.),   #purple
+            (255., 0., 0.)
+        ]
 steps = len(roygbiv)-1
 steps_f = float(steps)
 
@@ -79,14 +83,14 @@ def get_color_of_pendant_branch(length):
     :param length:
     :return:
     '''
-    if length > s.length_for_blue:
-        length = s.length_for_blue
+    if length > s.max_branch_length:
+        length = s.max_branch_length
         return (roygbiv[steps][0] / 255.0, roygbiv[steps][1] / 255.0, roygbiv[steps][2] / 255.0, s.alpha_kernel)
     if length <= 0:
         return (roygbiv[0][0]/ 255.0, roygbiv[0][1]/ 255.0, roygbiv[0][2]/ 255.0, s.alpha_kernel )
 
-    first = int(length / s.length_for_blue * steps_f)
-    pct_inter = length / s.length_for_blue * steps_f - float(first)
+    first = int(length / s.max_branch_length * steps_f)
+    pct_inter = length / s.max_branch_length * steps_f - float(first)
     if first==steps:
         return map(lambda x: x/255.0,roygbiv[steps])
     col1 = roygbiv[first]
@@ -131,7 +135,7 @@ def draw_legend_at_loc(ctx,x0,y0, w=200, h=200, lw=1, fontsize=14, verbose=False
     ctx.set_font_size(fontsize)
     for i in range(steps + 1):
         pct = float(i) / steps_f
-        blen = pct * s.length_for_blue
+        blen = pct * s.max_branch_length
         # pat.add_color_stop_rgb(pct,*get_color_of_pendant_branch(blen))
         ctx.move_to(x0 + w * pct, y0 + h)
         ctx.line_to(x0 + w * pct, y0 + h + h*s.tick_height_rel_to_box)

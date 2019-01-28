@@ -9,8 +9,8 @@ Dependencies:
 '''
 
 import cairo
+# from . import settings as s
 import settings as s
-
 
 class ArtManager():
     '''
@@ -31,6 +31,7 @@ class ArtManager():
     leaf_labels_on = False
     write_image_to_path = False
     image_path = None
+    image_written_ct = 0
     show_root = False
     # background_color = (1., 1., 1.)
     background_color = None
@@ -40,22 +41,34 @@ class ArtManager():
     valid_surface_types = ['png','wx','svg','pdf']
     cairo_surface_type = None
 
-    def __init__(self, parent=None, image_path=None, type='png',*args, **kwargs):
+    def __init__(self, parent=None, image_path=None, type='png',ht=None, wd=None, *args, **kwargs):
         '''
 
         :param parent:
         :param image_path:
+        :param type:
+        :param ht:
+        :param wd:
         :param args:
         :param kwargs:
         '''
         self.parent = parent
+        if ht is not None:
+            self.h = int(ht)
+            s.img_height = int(ht)
+        if wd is not None:
+            self.w = int(wd)
+            s.img_width = int(wd)
+        s.img_aspect = float(s.img_width) / float(s.img_height)
 
         if image_path is not None:
             self.image_path = image_path
-        else:
+        elif self.image_path is None:
             self.image_path = 'work\\temp_new.png'
 
         self.init_cairo_context(type=type)
+        self.args = args
+        self.kwargs = kwargs
 
     def set_image_path(self,path):
         '''
@@ -93,13 +106,15 @@ class ArtManager():
             self.ctx.set_font_face(cairo.ToyFontFace("sans-serif", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_BOLD))
         te = self.ctx.text_extents(lab)
         self.ctx.move_to(*point)
-        self.ctx.rel_move_to(2, 2 + te[3])
-        self.ctx.set_source_rgba(*color)
+        self.ctx.rel_move_to(2, + te[3])
+        cr=(.35, .35, .35, 1.0)
+        self.ctx.set_source_rgba(cr[0],cr[1],cr[2],cr[3])
         self.ctx.show_text(lab)
         self.ctx.fill()
         self.ctx.set_matrix(oldm)
         self.ctx.set_font_matrix(oldfm)
         self.ctx.set_font_face(oldf)
+
 
     def draw_white_rectangle(self, L, R, T, B):
         '''
@@ -149,13 +164,15 @@ class ArtManager():
             elif type=='pdf':
                 self.image_path_ext = 'pdf'
                 self.cairo_surface_type = 'pdf'
-                self.surf = cairo.PDFSurface(self.image_path + '.pdf', self.w, self.h)
-                # try:
-                #     self.surf =cairo.PDFSurface(self.image_path + '.pdf', self.w, self.h)
-                # except IOError:
-                #     print (self.image_path)
-                #     import sys
-                #     sys.exit(0)
+                # self.surf = cairo.PDFSurface(self.image_path + '.pdf', self.w, self.h)
+                try:
+                    self.surf =cairo.PDFSurface(self.image_path + '.pdf', self.w, self.h)
+                except IOError:
+                    print('IOError in init_cairo_context (line 166 of art_manager)')
+                    print (self.image_path)
+                    print ('W: %s,  H: %s' % (self.w, self.h))
+                    import sys
+                    sys.exit(0)
 
             else:
                 print("surface type not recognized. Valid types are: \n%s" % str(self.valid_surface_types))
@@ -191,7 +208,7 @@ class ArtManager():
             self.surf.write_to_png(self.image_path + '.png')
             self.init_cairo_context()
         self.surf.finish()
-
+        self.image_written_ct += 1
 
 
     def set_cairo_matrix(self, t11, t12, t13, t21, t22, t23):

@@ -63,10 +63,11 @@ def ibd_run_script_2_full_tree(artman, dataman, seppfile, multsfile, img_path, t
     # dataman.post_update_current_tree()
 
     print ('\tdrawing tree')
+    artman.set_image_path(img_path)
     artman.init_cairo_context(type='png')
     # pbw.init_cairo_pdf_context(svgfile_full)
     # pbw.init_cairo_svg_context(svgfile_full)
-    artman.set_image_path(img_path)
+
 
     fo, fi = os.path.split(img_path)
 

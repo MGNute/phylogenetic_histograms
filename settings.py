@@ -8,6 +8,7 @@ controls_xy = (100,100)  #cincy monitor
 # cairo settings
 img_width = 1500
 img_height = 900
+img_aspect = float(img_width)/float(img_height)
 tree_color = .70
 tree_alpha = 1.0
 tree_color_tup = (tree_color, tree_color, tree_color, tree_alpha)
@@ -15,8 +16,8 @@ tree_line_pct_of_width = .0005
 
 # histogram settings
 alpha_kernel = .10
-length_for_red = 0.
-length_for_blue = .60
+min_branch_length = 0.
+max_branch_length = .30
 circle_width_factor = .006
 circle_width_pixels = 5
 raw_circle_width = .01
