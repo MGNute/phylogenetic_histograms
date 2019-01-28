@@ -16,4 +16,4 @@ This code has been tested primarily on Windows, although in some cases on Mac as
 In order to use this code you will need output from SEPP, at a minimum. It is helpful to have ready access to the alignment and tree that SEPP used along with some kind of meaningful annotation of the leaf nodes (in particular, a taxonomic annotation, but whatever labeling is of interest to you). The annotation must be tab-delimited with the names of the leaf nodes in the first columns, and labels in the following columns. See the example in the reference data on the IDB for guidance.
 
 ### How to Use This Code
-(this is going to be long).
+The core library for creating the PICAN-PI graphs is contained in the two modules art_manager and data_controller.
