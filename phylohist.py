@@ -10,7 +10,7 @@ Requirements:
     Numpy
 
 Attributes:
-    roygbiv (List of 3-tuples of float): Specifies the list of color-stops
+    s.roygbiv (List of 3-tuples of float): Specifies the list of color-stops
         in the continuous color scale for denoting pendant branch lengths.
         Colors are given as (R,G,B) where all entries are floats between 0.0
         and 255.0 (which is the default for cairo). By default, the colors
@@ -20,6 +20,7 @@ Attributes:
             3. Green, (0,255,0)
             4. Light-Blue, (0,255,255)
             5. Blue (0,0,255)
+        NOTE: this has been moved to settings but is still documented here for right now.
 
 
 
@@ -35,17 +36,7 @@ import settings as s
 import colorsys
 #from art_manager import ArtManager
 
-roygbiv = [
-            # (255.,0.,0.),    #red
-            # (255.,153.,0.),
-            # (255.,255.,0.), #yellow
-            # (0.,255.,0.),   #green
-            # (0.,255.,255.), #teal
-            (0.,0.,255.),     #blue
-            (255.,0.,255.),   #purple
-            (255., 0., 0.)
-        ]
-steps = len(roygbiv)-1
+steps = len(s.roygbiv)-1
 steps_f = float(steps)
 
 
@@ -85,16 +76,16 @@ def get_color_of_pendant_branch(length):
     '''
     if length > s.max_branch_length:
         length = s.max_branch_length
-        return (roygbiv[steps][0] / 255.0, roygbiv[steps][1] / 255.0, roygbiv[steps][2] / 255.0, s.alpha_kernel)
+        return (s.roygbiv[steps][0] / 255.0, s.roygbiv[steps][1] / 255.0, s.roygbiv[steps][2] / 255.0, s.alpha_kernel)
     if length <= 0:
-        return (roygbiv[0][0]/ 255.0, roygbiv[0][1]/ 255.0, roygbiv[0][2]/ 255.0, s.alpha_kernel )
+        return (s.roygbiv[0][0]/ 255.0, s.roygbiv[0][1]/ 255.0, s.roygbiv[0][2]/ 255.0, s.alpha_kernel )
 
     first = int(length / s.max_branch_length * steps_f)
     pct_inter = length / s.max_branch_length * steps_f - float(first)
     if first==steps:
-        return map(lambda x: x/255.0,roygbiv[steps])
-    col1 = roygbiv[first]
-    col2 = roygbiv[first+1]
+        return map(lambda x: x/255.0,s.roygbiv[steps])
+    col1 = s.roygbiv[first]
+    col2 = s.roygbiv[first+1]
 
     # interpolating on the RGB scale:
     return ((pct_inter*col2[0]+(1-pct_inter)*col1[0])/255.,
@@ -122,7 +113,7 @@ def draw_legend_at_loc(ctx,x0,y0, w=200, h=200, lw=1, fontsize=14, verbose=False
     pat = cairo.LinearGradient(x0, y0, x0+w, y0 )
     for i in range(steps+1):
         pct = float(i)/steps_f
-        pat.add_color_stop_rgba(pct, roygbiv[i][0], roygbiv[i][1], roygbiv[i][2], s.alpha_kernel)
+        pat.add_color_stop_rgba(pct, s.roygbiv[i][0], s.roygbiv[i][1], s.roygbiv[i][2], s.alpha_kernel)
 
     # make border
     ctx.set_line_width(lw)

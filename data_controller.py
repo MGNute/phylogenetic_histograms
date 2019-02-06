@@ -409,7 +409,7 @@ class SeppJsonDataManager(DataManager):
                   "be enabled for further use. If there has not been one loaded, you will"
                   "likely encounter an error.")
         else:
-            get_annotation_dict(filepath)
+            self.annotation = get_annotation_dict(filepath)
         self.annotation_loaded=True
 
     def get_mrca(self, rank, name):
@@ -817,6 +817,20 @@ class SeppJsonDataManager(DataManager):
         if not isinstance(included,list):
             included = [included]
         fn = lambda nd: self.annotation[nd.taxon.label][rank] in included
+
+        #DEBUG:
+        # print("# Nodes: %s" % len(self.tree.leaf_nodes()))
+        # n_in_filter = sum([1 if fn(n) else 0 for n in self.tree.leaf_nodes()])
+        # print("# in Filter: %s" % n_in_filter)
+        # rks=[]
+        # for n in self.tree.leaf_node_iter():
+        #     rks.append(self.annotation[n.taxon.label][rank])
+        # rks = list(set(rks)); rks.sort()
+        # print(rks)
+        #
+        # sys.exit(0)
+
+
         del self.current_tree
         self.current_tree = self.tree.extract_tree('orig',fn,suppress_unifurcations=False)
         self.update_current_tree()

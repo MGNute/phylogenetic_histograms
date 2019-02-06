@@ -1,5 +1,7 @@
 '''
 contains user-settings that may not need to be changed regularly.
+
+TODO: change this to be a configparser file
 '''
 # initial panel settings
 # controls_xy = (2300,300)  #cincy monitor
@@ -17,7 +19,7 @@ tree_line_pct_of_width = .0005
 # histogram settings
 alpha_kernel = .10
 min_branch_length = 0.
-max_branch_length = .30
+max_branch_length = .20
 circle_width_factor = .006
 circle_width_pixels = 5
 raw_circle_width = .01
@@ -40,3 +42,31 @@ tick_height_rel_to_box = 0.025
 
 # reference data settings
 annotation_file = None
+
+# Color Scale:
+full_hue = False
+
+if full_hue:
+# ***full hue scale***
+    roygbiv = [
+                (255.,0.,0.),    #red
+                # (255.,153.,0.),
+                (255.,255.,0.), #yellow
+                (0.,255.,0.),   #green
+                (0.,255.,255.), #teal
+                (0.,0.,255.),     #blue
+                # (255.,0.,255.),   #purple
+                # (255., 0., 0.)
+            ]
+else:
+    # ***accessibility enhanced***
+    roygbiv = [
+                # (255.,0.,0.),    #red
+                # (255.,153.,0.),
+                # (255.,255.,0.), #yellow
+                # (0.,255.,0.),   #green
+                # (0.,255.,255.), #teal
+                (0.,0.,255.),     #blue
+                (255.,0.,255.),   #purple
+                (255., 0., 0.)
+            ]
