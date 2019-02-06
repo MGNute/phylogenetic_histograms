@@ -44,7 +44,7 @@ tick_height_rel_to_box = 0.025
 annotation_file = None
 
 # Color Scale:
-full_hue = False
+full_hue = True
 
 if full_hue:
 # ***full hue scale***
