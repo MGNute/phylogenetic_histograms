@@ -73,6 +73,10 @@ def run_primate_vaginal_graphics():
 
 
 def run_figure1_human_vaginal(artman, dataman, seppfile, img_path, type):
+    '''
+    This is a poorly named function because it's really the workhorse behind making all the graphics
+    for the primate vaginal study.
+    '''
     print('\topening sepp file')
     dataman.load_sepp_file(seppfile)
     dataman.load_read_multiplicities()
