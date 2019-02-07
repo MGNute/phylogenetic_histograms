@@ -2,8 +2,6 @@
 
 This repository contains the code used in the paper "PICAN-PI: A Graphical Schema to Visualize Microbial Biodiversity" by Nute et al. It is a reference implementation of the PICAN-PI graph and some scripts that can be used in conjuction with the publicly available data on the [Illinois Data Bank (IDB)](https://doi.org/10.13012/B2IDB-1678505_V1) to reproduce the graphics used in that paper. 
 
-*Note*: as of 2/6/2019 that link is not operational yet because the data is pending a review with the IDB, however the DOI has been reserved and should be working in a few days.
-
 ### Dependencies
 This library depends on the following packages:
 - DendroPy 4.0+
